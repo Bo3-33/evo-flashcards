@@ -1,8 +1,10 @@
 # Evo Flashcards
 
-[Open the flashcard converter](https://bo3-33.github.io/evo-flashcards/)
+[Open Evo Flashcards and Notes](https://bo3-33.github.io/evo-flashcards/)
 
 A static browser converter and a TI‑84 Evo Python viewer. Choose a two-column UTF-8 CSV, optionally skip a header row, and send the named deck to calculator RAM from desktop Chrome. Install the viewer once from the same page.
+
+The Notes section accepts typed or pasted text and UTF-8 .txt or .md files. Preview the wrapped text, send the note over USB, or download its .py file. Run the note by name in the Evo Python app.
 
 The calculator's USB serial link uses Web Serial when available, with a WebUSB bulk transport for browsers exposing the device that way. The site keeps the deck index in FLINDEX on the device. The CSV and calculator data are processed locally in the browser.
 

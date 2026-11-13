@@ -1,11 +1,16 @@
 import { addToPicker, convertCsv, pickerState } from "./decks.js";
+import { convertNote, noteRows } from "./notes.js";
 import { chooseEvo, withEvo } from "./evo.js";
 
 const ui = Object.fromEntries(
-  ["csv", "name", "header", "summary", "status", "send", "download", "retry", "install", "deck-form"]
+  ["csv", "name", "header", "summary", "status", "send", "download", "retry", "install", "deck-form", "note-form", "note-name", "note-file", "note-text",
+    "note-summary", "note-status", "note-screen", "note-position", "note-prev", "note-next", "note-send", "note-download"]
     .map(id => [id, document.getElementById(id)])
 );
 let deck;
+let note;
+let noteOffset = 0;
+let noteRevision = 0;
 let revision = 0;
 let busy = false;
 let device;
@@ -23,6 +28,8 @@ function controls() {
   ui.install.disabled = busy;
   ui.retry.disabled = busy;
   ui.retry.hidden = !pending;
+  ui["note-send"].disabled = busy || !note;
+  ui["note-download"].disabled = busy || !note;
 }
 
 async function refresh() {
@@ -68,11 +75,11 @@ ui.download.addEventListener("click", () => {
   if (deck) download(deck.name, deck.source);
 });
 
-async function connected(action) {
+async function connected(action, status = ui.status) {
   if (busy) return;
   busy = true;
   controls();
-  message(ui.status, "Connecting to your calculator…");
+  message(status, "Connecting to your calculator…");
   try {
     device ??= await chooseEvo();
     await withEvo(device, action);
@@ -82,8 +89,8 @@ async function connected(action) {
     if (["NetworkError", "InvalidStateError", "NotFoundError"].includes(error.name)) {
       detail = "Calculator disconnected or busy. Check the USB cable, close TI Connect Evo, and retry.";
     }
-    if (pending) detail = `${pending.name} was sent. The picker update still needs to finish. ${detail}`;
-    message(ui.status, detail, true);
+    if (pending && status === ui.status) detail = `${pending.name} was sent. The picker update still needs to finish. ${detail}`;
+    message(status, detail, true);
   } finally {
     busy = false;
     controls();
@@ -121,6 +128,10 @@ ui["deck-form"].addEventListener("submit", event => {
   if (!selected || pending) return;
   connected(async link => {
     const state = await pickerState(link);
+    const entry = state.files.find(file => file.name === selected.name && file.type === 15);
+    if (entry && (await link.readSource(entry)).startsWith("# Evo Flashcards note v1")) {
+      throw new Error("That name belongs to a note. Choose another deck name.");
+    }
     const overwrite = confirmReplacement(state.files, selected.name);
     if (overwrite === null) return message(ui.status, "Deck transfer canceled.");
     message(ui.status, `Sending ${selected.name} to RAM…`);
@@ -151,3 +162,92 @@ ui.retry.addEventListener("click", () => {
 });
 
 if (!navigator.serial && !navigator.usb) message(ui.status, "Open this site directly in desktop Chrome for USB transfer. Downloads are available here.");
+
+function notePreview() {
+  const lines = note?.lines ?? [];
+  ui["note-screen"].textContent = lines.length
+    ? lines.slice(noteOffset, noteOffset + noteRows).join("\n")
+    : "Enter a valid name and note text.";
+  ui["note-position"].textContent = lines.length
+    ? `Lines ${noteOffset + 1}–${Math.min(noteOffset + noteRows, lines.length)} of ${lines.length}`
+    : "";
+  ui["note-prev"].disabled = noteOffset === 0;
+  ui["note-next"].disabled = noteOffset + noteRows >= lines.length;
+}
+
+function refreshNote() {
+  note = null;
+  noteOffset = 0;
+  message(ui["note-summary"], "");
+  const text = ui["note-text"].value;
+  const name = ui["note-name"].value;
+  if (text.trim() && name.trim()) {
+    try {
+      note = convertNote(text, name);
+      message(ui["note-summary"], note.name + ".py");
+    } catch (error) {
+      message(ui["note-summary"], error.message, true);
+    }
+  }
+  notePreview();
+  controls();
+}
+
+for (const field of ["note-name", "note-text"]) {
+  ui[field].addEventListener("input", () => {
+    if (field === "note-text") noteRevision++;
+    refreshNote();
+  });
+}
+
+ui["note-file"].addEventListener("change", async () => {
+  const file = ui["note-file"].files[0];
+  if (!file) return;
+  const revision = ++noteRevision;
+  try {
+    const text = new TextDecoder("utf-8", { fatal: true }).decode(await file.arrayBuffer());
+    if (revision !== noteRevision) return;
+    ui["note-text"].value = text;
+    if (!ui["note-name"].value.trim()) {
+      const stem = file.name.replace(/\.[^.]*$/, "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+      ui["note-name"].value = (/^[A-Z]/.test(stem) ? stem : "N" + stem).slice(0, 8);
+    }
+    message(ui["note-status"], "");
+    refreshNote();
+  } catch {
+    if (revision === noteRevision) message(ui["note-status"], "Choose a UTF‑8 text or Markdown file.", true);
+  } finally {
+    if (revision === noteRevision) ui["note-file"].value = "";
+  }
+});
+
+ui["note-prev"].addEventListener("click", () => {
+  noteOffset = Math.max(0, noteOffset - noteRows);
+  notePreview();
+});
+ui["note-next"].addEventListener("click", () => {
+  noteOffset = Math.min(Math.max(0, note.lines.length - noteRows), noteOffset + noteRows);
+  notePreview();
+});
+ui["note-download"].addEventListener("click", () => {
+  if (note) download(note.name, note.source);
+});
+
+ui["note-form"].addEventListener("submit", event => {
+  event.preventDefault();
+  const selected = note;
+  if (!selected) return;
+  const status = ui["note-status"];
+  connected(async link => {
+    const files = await link.list();
+    const entry = files.find(file => file.name === selected.name && file.type === 15);
+    if (entry && (await link.readSource(entry)).startsWith("# Evo Flashcards deck v1")) {
+      throw new Error("That name belongs to a flashcard deck. Choose another note name.");
+    }
+    const overwrite = confirmReplacement(files, selected.name);
+    if (overwrite === null) return message(status, "Note transfer canceled.");
+    message(status, `Sending ${selected.name} to RAM…`);
+    await link.writeSource(selected.name, selected.source, overwrite);
+    message(status, `Sent ${selected.name}. Run it in the calculator’s Python app.`);
+  }, status);
+});

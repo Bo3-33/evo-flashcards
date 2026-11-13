@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Send a CSV flashcard deck directly to your TI-84 Evo.">
+  <meta name="description" content="Send flashcards and notes directly to your TI-84 Evo.">
   <title>Evo Flashcards</title>
   <link rel="stylesheet" href="style.css">
   <script defer src="vendor/papaparse.min.js"></script>
@@ -14,10 +14,14 @@
     <header>
       <p class="device">TI‑84 EVO</p>
       <h1>Evo Flashcards</h1>
-      <p>Turn a two-column CSV into a deck you can study on your calculator.</p>
+      <p>Send flashcards and notes to your calculator.</p>
+      <nav class="links" aria-label="Study tools">
+        <a href="#flashcards">Flashcards</a>
+        <a href="#notes">Notes</a>
+      </nav>
     </header>
     <div class="layout">
-      <section class="card" aria-labelledby="deck-heading">
+      <section class="card" id="flashcards" aria-labelledby="deck-heading">
         <h2 id="deck-heading">Send a deck</h2>
         <form id="deck-form">
           <label for="csv">Flashcard CSV</label>
@@ -60,6 +64,42 @@
         </section>
       </aside>
     </div>
+    <section class="card notes" id="notes" aria-labelledby="notes-heading">
+      <h2 id="notes-heading">Send a note</h2>
+      <div class="layout">
+        <div>
+          <form id="note-form">
+            <label for="note-name">Note name</label>
+            <input id="note-name" type="text" maxlength="8" placeholder="CHEM" required spellcheck="false" autocapitalize="characters" aria-describedby="note-name-help">
+            <small id="note-name-help">1–8 letters or digits, starting with a letter.</small>
+            <label for="note-file">Import a text file</label>
+            <input id="note-file" type="file" accept=".txt,.md,text/plain,text/markdown">
+            <label for="note-text">Note text</label>
+            <textarea id="note-text" rows="8" placeholder="Type or paste your notes…" required></textarea>
+            <p id="note-summary" class="feedback" aria-live="polite" hidden></p>
+            <div class="actions">
+              <button id="note-send" type="submit" disabled>Send note to calculator</button>
+              <button id="note-download" class="secondary" type="button" disabled>Download note .py</button>
+            </div>
+          </form>
+          <p id="note-status" class="feedback" role="status" hidden></p>
+        </div>
+        <div class="note-preview">
+          <h3>Calculator preview</h3>
+          <pre id="note-screen" aria-label="Note preview">Enter text to preview it.</pre>
+          <div class="actions">
+            <button id="note-prev" class="secondary" type="button" disabled>Previous</button>
+            <button id="note-next" class="secondary" type="button" disabled>Next</button>
+            <small id="note-position" aria-live="polite"></small>
+          </div>
+          <p>Run the note by name in the Evo’s Python app. Up and Down scroll one line, Left and Right move a screen, and Clear exits.</p>
+          <details>
+            <summary>Manual transfer</summary>
+            <p>Download the note and send its .py file to RAM with <a href="https://connectevo.ti.com/" target="_blank" rel="noopener">TI Connect Evo</a>.</p>
+          </details>
+        </div>
+      </div>
+    </section>
   </main>
 </body>
 </html>
