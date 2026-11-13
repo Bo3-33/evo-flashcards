@@ -7,7 +7,7 @@
   <title>Evo Flashcards</title>
   <link rel="stylesheet" href="style.css?v=notes-1">
   <script defer src="vendor/papaparse.min.js"></script>
-  <script type="module" src="app.js?v=notes-1"></script>
+  <script type="module" src="app.js?v=documents-1"></script>
 </head>
 <body>
   <main>
@@ -72,8 +72,9 @@
             <label for="note-name">Note name</label>
             <input id="note-name" type="text" maxlength="8" placeholder="CHEM" required spellcheck="false" autocapitalize="characters" aria-describedby="note-name-help">
             <small id="note-name-help">1–8 letters or digits, starting with a letter.</small>
-            <label for="note-file">Import a text file</label>
-            <input id="note-file" type="file" accept=".txt,.md,text/plain,text/markdown">
+            <label for="note-file">Import a document</label>
+            <input id="note-file" type="file" accept=".txt,.md,.docx,.odt,.rtf" aria-describedby="note-file-help">
+            <small id="note-file-help">TXT, Markdown, Word, OpenDocument, or RTF. Imports text for the Evo.</small>
             <label for="note-text">Note text</label>
             <textarea id="note-text" rows="8" placeholder="Type or paste your notes…" required></textarea>
             <p id="note-summary" class="feedback" aria-live="polite" hidden></p>
