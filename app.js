@@ -1,3 +1,4 @@
+import { importNoteFile } from "./document-text.js";
 import { addToPicker, convertCsv, pickerState } from "./decks.js";
 import { convertNote, noteRows } from "./notes.js";
 import { chooseEvo, withEvo } from "./evo.js";
@@ -205,7 +206,7 @@ ui["note-file"].addEventListener("change", async () => {
   if (!file) return;
   const revision = ++noteRevision;
   try {
-    const text = new TextDecoder("utf-8", { fatal: true }).decode(await file.arrayBuffer());
+    const text = await importNoteFile(file);
     if (revision !== noteRevision) return;
     ui["note-text"].value = text;
     if (!ui["note-name"].value.trim()) {
@@ -214,8 +215,8 @@ ui["note-file"].addEventListener("change", async () => {
     }
     message(ui["note-status"], "");
     refreshNote();
-  } catch {
-    if (revision === noteRevision) message(ui["note-status"], "Choose a UTF‑8 text or Markdown file.", true);
+  } catch (error) {
+    if (revision === noteRevision) message(ui["note-status"], error.message, true);
   } finally {
     if (revision === noteRevision) ui["note-file"].value = "";
   }
